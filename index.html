@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>製造工程デモアプリ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('serviceWorker.js')
+        .then(reg => console.log('SW registered', reg))
+        .catch(err => console.log('SW registration failed', err));
+    }
+  </script>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f4f4f4;
+    }
+    .container {
+      width: 100%;
+      max-width: 1024px;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    button {
+      padding: 15px 25px;
+      margin: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      opacity: 0.85;
+    }
+    .primary { background-color: #007bff; color: white; }
+    .secondary { background-color: #6c757d; color: white; }
+    .success { background-color: #28a745; color: white; }
+    .danger { background-color: #dc3545; color: white; }
+    .hidden { display: none; }
+    #manualViewer {
+      width: 100%;
+      height: 500px;
+      border: 1px solid #ccc;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 id="loginTitle">QRコードログイン（仮）</h1>
+    <div id="loginArea">
+      <p>作業者を選択：</p>
+      <select id="workerSelect">
+        <option value="Tanaka">田中</option>
+        <option value="Sato">佐藤</option>
+        <option value="Yamada">山田</option>
+      </select>
+      <button class="primary" onclick="startWork()">ログイン</button>
+    </div>
+
+    <div id="workArea" class="hidden">
+      <h2 id="stepTitle">工程：部品セット</h2>
+      <p id="stepDescription">製品の部品をセットしてください。</p>
+      <button class="secondary" onclick="prevStep()">← 戻る</button>
+      <button class="primary" onclick="showManual()">マニュアルを見る</button>
+      <button class="primary" onclick="addMemo()">メモを残す</button>
+      <button class="primary" onclick="nextStep()">次へ →</button>
+      <button id="completeButton" class="success hidden" onclick="completeProduct()">製品製造を完了する</button>
+      <iframe id="manualViewer" class="hidden"></iframe>
+    </div>
+
+    <div id="completeMessage" class="hidden">
+      <h2>製造完了！</h2>
+      <p>この製品の作業を完了しました。</p>
+      <button class="success" onclick="startNewProduct()">次の製品を製造する</button>
+    </div>
+  </div>
+
+  <script>
+    const steps = [
+      { title: "工程：部品セット", desc: "製品の部品をセットしてください。" },
+      { title: "工程：ネジ締め", desc: "部品を固定してください。" },
+      { title: "工程：検品", desc: "製品に不具合がないか確認してください。" }
+    ];
+    let currentStep = 0;
+    let logs = [];
+    let worker = "";
+
+    function startWork() {
+      worker = document.getElementById("workerSelect").value;
+      document.getElementById("workArea").classList.remove("hidden");
+      document.getElementById("loginArea").classList.add("hidden");
+      document.getElementById("loginTitle").classList.add("hidden");
+      updateStep();
+    }
+
+    function updateStep() {
+      document.getElementById("stepTitle").innerText = steps[currentStep].title;
+      document.getElementById("stepDescription").innerText = steps[currentStep].desc;
+      document.getElementById("completeButton").classList.toggle("hidden", currentStep !== steps.length - 1);
+      document.getElementById("manualViewer").classList.add("hidden");
+    }
+
+    function nextStep() {
+      if (currentStep < steps.length - 1) {
+        currentStep++;
+        updateStep();
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 0) {
+        currentStep--;
+        updateStep();
+      }
+    }
+
+    function showManual() {
+      const viewer = document.getElementById("manualViewer");
+      viewer.src = "manual_sample.pdf";
+      viewer.classList.remove("hidden");
+    }
+
+    function addMemo() {
+      const memo = prompt("メモを入力してください：");
+      if (memo) {
+        logs.push({ step: steps[currentStep].title, memo, time: new Date().toISOString() });
+        alert("メモを保存しました");
+      }
+    }
+
+    function completeProduct() {
+      logs.push({
+        productId: "DEMO001",
+        worker,
+        stepsCompleted: steps.map(s => s.title),
+        finishedAt: new Date().toISOString(),
+        status: "完了"
+      });
+      console.log("作業ログ:", logs);
+      document.getElementById("workArea").classList.add("hidden");
+      document.getElementById("completeMessage").classList.remove("hidden");
+    }
+
+    function startNewProduct() {
+      currentStep = 0;
+      logs = [];
+      updateStep();
+      document.getElementById("workArea").classList.remove("hidden");
+      document.getElementById("completeMessage").classList.add("hidden");
+    }
+  </script>
+</body>
+</html>
